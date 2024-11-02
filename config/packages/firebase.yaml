@@ -1,0 +1,4 @@
+kreait_firebase:
+    projects:
+        read-my-books:
+            credentials: '%kernel.project_dir%/read-my-books.json'
