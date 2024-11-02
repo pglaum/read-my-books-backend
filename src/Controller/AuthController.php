@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Security\Voter\StandardVoter;
+use App\Service\GoogleBooks\ApiClient;
 use Kreait\Firebase\Contract\Auth;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,7 +42,7 @@ class AuthController extends AbstractController
 
     #[Route('/test', name: 'test', methods: ['GET'])]
     #[IsGranted(StandardVoter::LOGGED_IN)]
-    public function test(): Response
+    public function test(ApiClient $apiClient): Response
     {
         return new JsonResponse(['message' => 'Hello from AuthController']);
     }
