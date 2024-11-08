@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\GoogleBooks\ApiClient;
 use App\Service\GoogleBooks\Type\SearchQuery;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
@@ -17,7 +18,14 @@ class GoogleBooksController extends AbstractController
         ApiClient $apiClient,
         #[MapQueryString] SearchQuery $query,
     ): Response {
-        $results = $apiClient->search($query);
+        try {
+            $results = $apiClient->search($query);
+        } catch (\Exception $e) {
+            return new JsonResponse(
+                ['error' => $e->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+            );
+        }
 
         return new Response(
             $this->serializer->serialize($results),
@@ -30,7 +38,14 @@ class GoogleBooksController extends AbstractController
     #[Route('/{volumeId}', name: 'get')]
     public function get(string $volumeId, ApiClient $apiClient): Response
     {
-        $result = $apiClient->get($volumeId);
+        try {
+            $result = $apiClient->get($volumeId);
+        } catch (\Exception $e) {
+            return new JsonResponse(
+                ['error' => $e->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+            );
+        }
 
         return new Response(
             $this->serializer->serialize($result),
