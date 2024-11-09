@@ -20,7 +20,7 @@ class SavedBook
     private ?string $userId = null;
 
     #[ORM\ManyToOne]
-    private ?GoogleVolume $volumeId = null;
+    private ?GoogleVolume $volume = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $ownedCount = null;
@@ -39,6 +39,9 @@ class SavedBook
 
     #[ORM\Column(nullable: true, enumType: BookStatusType::class)]
     private ?BookStatusType $bookStatus = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $favorite = null;
 
     public function __construct()
     {
@@ -62,14 +65,14 @@ class SavedBook
         return $this;
     }
 
-    public function getVolumeId(): ?GoogleVolume
+    public function getVolume(): ?GoogleVolume
     {
-        return $this->volumeId;
+        return $this->volume;
     }
 
-    public function setVolumeId(?GoogleVolume $volumeId): static
+    public function setVolume(?GoogleVolume $volume): static
     {
-        $this->volumeId = $volumeId;
+        $this->volume = $volume;
 
         return $this;
     }
@@ -140,6 +143,27 @@ class SavedBook
         return $this;
     }
 
+    public function isOwned(): bool
+    {
+        return $this->hasEvent(BookEventType::BOUGHT);
+    }
+
+    public function hasEvent(BookEventType $eventType): bool
+    {
+        foreach ($this->events as $event) {
+            if ($eventType === $event->getEvent()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isRead(): bool
+    {
+        return $this->hasEvent(BookEventType::READ);
+    }
+
     public function getBookStatus(): ?BookStatusType
     {
         return $this->bookStatus;
@@ -148,6 +172,18 @@ class SavedBook
     public function setBookStatus(?BookStatusType $bookStatus): static
     {
         $this->bookStatus = $bookStatus;
+
+        return $this;
+    }
+
+    public function isFavorite(): ?bool
+    {
+        return $this->favorite;
+    }
+
+    public function setFavorite(?bool $favorite): static
+    {
+        $this->favorite = $favorite;
 
         return $this;
     }
