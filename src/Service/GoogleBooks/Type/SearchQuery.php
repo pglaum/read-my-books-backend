@@ -16,11 +16,14 @@ class SearchQuery
         #[Assert\GreaterThanOrEqual(0)]
         #[Assert\LessThanOrEqual(40)]
         public int $maxResults = 40,
+
+        #[Assert\GreaterThanOrEqual(0)]
+        public int $startIndex = 0,
     ) {
     }
 
     public function serialize(): string
     {
-        return "{$this->query}-{$this->orderBy->value}-{$this->maxResults}";
+        return "{$this->query}-{$this->orderBy->value}-{$this->maxResults}-{$this->startIndex}";
     }
 }

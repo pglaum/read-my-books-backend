@@ -2,7 +2,9 @@
 
 namespace App\Service\GoogleBooks;
 
+use App\Entity\GoogleVolume;
 use App\Service\GoogleBooks\Type\SearchQuery;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
@@ -14,10 +16,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class ApiClient
 {
     public function __construct(
-        private HttpClientInterface   $client,
-        private ParameterBagInterface $parameterBag,
-    )
-    {
+        private readonly HttpClientInterface $client,
+        private readonly ParameterBagInterface $parameterBag,
+        private readonly Security $security,
+    ) {
     }
 
     /**
@@ -29,8 +31,7 @@ class ApiClient
      */
     public function search(
         SearchQuery $query,
-    ): array
-    {
+    ): array {
         // TODO: cache results
         // TODO: handle errors
         $response = $this->getClient()->request(
@@ -45,7 +46,15 @@ class ApiClient
             ],
         );
 
-        return $response->toArray();
+        $data = $response->toArray();
+        $total = $data['totalItems'] ?? 0;
+        $items = $data['items'] ?? [];
+        $results = [];
+        foreach ($items as $item) {
+            $results[] = new GoogleVolume($this->security->getUser()->getUserIdentifier(), $item);
+        }
+
+        return [$results, $total];
     }
 
     private function getClient(): HttpClientInterface
@@ -67,15 +76,15 @@ class ApiClient
      * @throws DecodingExceptionInterface
      * @throws ClientExceptionInterface
      */
-    public function get(string $id): array
+    public function get(string $id): GoogleVolume
     {
         // TODO: cache results
         // TODO: handle errors
         $response = $this->getClient()->request(
             'GET',
-            '/books/v1/volumes/' . $id,
+            '/books/v1/volumes/'.$id,
         );
 
-        return $response->toArray();
+        return new GoogleVolume($this->security->getUser()->getUserIdentifier(), $response->toArray());
     }
 }
