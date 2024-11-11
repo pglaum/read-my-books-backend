@@ -41,6 +41,9 @@ services:
     volumes:
       - database_data:/var/lib/postgresql/data:rw
 
+  redis:
+    image: redis:7-alpine
+
 volumes:
   caddy_data:
   caddy_config:

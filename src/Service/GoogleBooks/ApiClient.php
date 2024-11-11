@@ -6,6 +6,8 @@ use App\Entity\GoogleVolume;
 use App\Service\GoogleBooks\Type\SearchQuery;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -19,6 +21,7 @@ class ApiClient
         private readonly HttpClientInterface $client,
         private readonly ParameterBagInterface $parameterBag,
         private readonly Security $security,
+        private CacheInterface $cache,
     ) {
     }
 
@@ -32,21 +35,54 @@ class ApiClient
     public function search(
         SearchQuery $query,
     ): array {
-        // TODO: cache results
-        // TODO: handle errors
-        $response = $this->getClient()->request(
-            'GET',
-            '/books/v1/volumes',
-            [
-                'query' => [
-                    'q' => $query->query,
-                    'maxResults' => $query->maxResults,
-                    'orderBy' => $query->orderBy->value,
-                ],
-            ],
-        );
+        $key = 'google-books-search-'.$query->serialize();
+        [$datetime, $response] = $this->cache->get($key, function (ItemInterface $item) use ($query): array {
+            $item->expiresAfter(3600 * 24 * 31); // 1 month, then we remove it
 
-        $data = $response->toArray();
+            $response = $this->getClient()->request(
+                'GET',
+                '/books/v1/volumes',
+                [
+                    'query' => [
+                        'q' => $query->query,
+                        'maxResults' => $query->maxResults,
+                        'orderBy' => $query->orderBy->value,
+                    ],
+                ],
+            );
+
+            return [new \DateTime(), $response->toArray()];
+        });
+
+        if ($datetime < new \DateTime('-1 week')) {
+            $newResponse = $this->getClient()->request(
+                'GET',
+                '/books/v1/volumes',
+                [
+                    'headers' => [
+                        'If-None-Match' => $response['etag'] ?? null,
+                    ],
+                    'query' => [
+                        'q' => $query->query,
+                        'maxResults' => $query->maxResults,
+                        'orderBy' => $query->orderBy->value,
+                    ],
+                ],
+            );
+
+            if (304 !== $newResponse->getStatusCode()) {
+                $response = $newResponse->toArray();
+            }
+
+            $this->cache->delete($key);
+            $this->cache->get($key, function (ItemInterface $item) use ($response): array {
+                $item->expiresAfter(3600 * 24 * 31); // 1 month, then we remove it
+
+                return [new \DateTime(), $response];
+            });
+        }
+
+        $data = $response;
         $total = $data['totalItems'] ?? 0;
         $items = $data['items'] ?? [];
         $results = [];
@@ -55,18 +91,6 @@ class ApiClient
         }
 
         return [$results, $total];
-    }
-
-    private function getClient(): HttpClientInterface
-    {
-        $apiKey = $this->parameterBag->get('firebaseApiKey');
-
-        return $this->client->withOptions([
-            'base_uri' => 'https://www.googleapis.com',
-            'query' => [
-                'apiKey' => $apiKey,
-            ],
-        ]);
     }
 
     /**
@@ -86,5 +110,17 @@ class ApiClient
         );
 
         return new GoogleVolume($this->security->getUser()->getUserIdentifier(), $response->toArray());
+    }
+
+    private function getClient(): HttpClientInterface
+    {
+        $apiKey = $this->parameterBag->get('firebaseApiKey');
+
+        return $this->client->withOptions([
+            'base_uri' => 'https://www.googleapis.com',
+            'query' => [
+                'apiKey' => $apiKey,
+            ],
+        ]);
     }
 }
