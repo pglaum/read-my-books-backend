@@ -35,7 +35,7 @@ class SavedBook
     private ?BookList $bookList = null;
 
     /** @var Collection<int, BookEvent> */
-    #[ORM\OneToMany(targetEntity: BookEvent::class, mappedBy: 'savedBook')]
+    #[ORM\OneToMany(targetEntity: BookEvent::class, mappedBy: 'savedBook', cascade: ['persist', 'remove'])]
     private Collection $events;
 
     #[ORM\Column(nullable: true, enumType: BookStatusType::class)]

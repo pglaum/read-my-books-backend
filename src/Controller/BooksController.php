@@ -20,7 +20,7 @@ class BooksController extends AbstractController
 {
     #[Route('/home', name: 'homepage', methods: ['GET'])]
     #[IsGranted(BooksVoter::LIST)]
-    public function list(
+    public function homepage(
         #[MapQueryParameter] ?BookList $bookList = null,
     ): Response {
         $currentlyReading = $this->em->getRepository(SavedBook::class)->findBy([
@@ -50,6 +50,25 @@ class BooksController extends AbstractController
                 'wishlist' => $wishlist,
                 'library' => $library,
             ]),
+            Response::HTTP_OK,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    #[Route('/', name: 'list', methods: ['GET'])]
+    #[IsGranted(BooksVoter::LIST)]
+    public function list(
+        #[MapQueryParameter] BookList $bookList,
+    ): Response {
+        $books = $this->em->getRepository(SavedBook::class)->findBy([
+            'userId' => $this->getUser()->getUserIdentifier(),
+            'bookList' => $bookList,
+        ], [
+            'updatedAt' => 'DESC',
+        ]);
+
+        return new Response(
+            $this->serializer->serialize($books),
             Response::HTTP_OK,
             ['Content-Type' => 'application/json'],
         );
@@ -156,49 +175,50 @@ class BooksController extends AbstractController
         }
     }
 
-    #[Route('/', name: 'delete', methods: ['DELETE'])]
-    #[IsGranted(BooksVoter::DELETE)]
+    #[Route('/{id}', name: 'get', methods: ['GET'])]
+    #[IsGranted(BooksVoter::VIEW, subject: 'savedBook')]
+    public function get(
+        SavedBook $savedBook,
+    ): Response {
+        return new Response(
+            $this->serializer->serialize($savedBook),
+            Response::HTTP_OK,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[IsGranted(BooksVoter::DELETE, subject: 'savedBook')]
     public function delete(
         ApiClient $apiClient,
-        #[MapQueryParameter] ?int $id = null,
+        SavedBook $savedBook,
         #[MapQueryParameter] ?string $volumeId = null,
     ): Response {
-        if (null == $id && null == $volumeId) {
-            return new Response(null, Response::HTTP_BAD_REQUEST);
-        }
-
-        if (null != $id) {
-            $savedBook = $this->em->getRepository(SavedBook::class)->find($id);
-            if (!$savedBook) {
-                return new Response(null, Response::HTTP_NOT_FOUND);
-            }
-
-            $this->em->remove($savedBook);
-            $this->em->flush();
-
-            return new Response(null, Response::HTTP_NO_CONTENT);
-        }
-
-        // DELETE by $volumeId
-        $googleBook = $this->em->getRepository(GoogleVolume::class)->findOneBy([
-            'userId' => $this->getUser()->getUserIdentifier(),
-            'volumeId' => $volumeId,
-        ]);
-        if (!$googleBook) {
-            return new Response(null, Response::HTTP_NOT_FOUND);
-        }
-
-        $savedBook = $this->em->getRepository(SavedBook::class)->findOneBy([
-            'userId' => $this->getUser()->getUserIdentifier(),
-            'volume' => $googleBook,
-        ]);
-        if (!$savedBook) {
-            return new Response(null, Response::HTTP_NOT_FOUND);
-        }
-
         $this->em->remove($savedBook);
         $this->em->flush();
 
         return new Response(null, Response::HTTP_NO_CONTENT);
+
+        // TODO: DELETE by $volumeId
+        //        $googleBook = $this->em->getRepository(GoogleVolume::class)->findOneBy([
+        //            'userId' => $this->getUser()->getUserIdentifier(),
+        //            'volumeId' => $volumeId,
+        //        ]);
+        //        if (!$googleBook) {
+        //            return new Response(null, Response::HTTP_NOT_FOUND);
+        //        }
+        //
+        //        $savedBook = $this->em->getRepository(SavedBook::class)->findOneBy([
+        //            'userId' => $this->getUser()->getUserIdentifier(),
+        //            'volume' => $googleBook,
+        //        ]);
+        //        if (!$savedBook) {
+        //            return new Response(null, Response::HTTP_NOT_FOUND);
+        //        }
+        //
+        //        $this->em->remove($savedBook);
+        //        $this->em->flush();
+        //
+        //        return new Response(null, Response::HTTP_NO_CONTENT);
     }
 }
