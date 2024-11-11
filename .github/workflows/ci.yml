@@ -32,6 +32,8 @@ jobs:
             *.cache-from=type=gha,scope=${{github.ref}}
             *.cache-from=type=gha,scope=refs/heads/main
             *.cache-to=type=gha,scope=${{github.ref}},mode=max
+      - name: Setup secrets
+        run: echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > read-my-books.json
       - name: Start services
         run: docker compose up --wait --no-build
       - name: Check HTTP reachability
