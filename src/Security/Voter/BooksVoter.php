@@ -10,10 +10,11 @@ class BooksVoter extends Voter
 {
     public const string CREATE = 'create';
     public const string DELETE = 'delete';
+    public const string LIST = 'list';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::CREATE, self::DELETE]);
+        return in_array($attribute, [self::CREATE, self::DELETE, self::LIST]);
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
@@ -27,8 +28,8 @@ class BooksVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
-                return null != $user;
             case self::DELETE:
+            case self::LIST:
                 return null != $user;
         }
 

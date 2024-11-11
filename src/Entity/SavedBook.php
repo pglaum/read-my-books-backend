@@ -9,8 +9,11 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SavedBookRepository::class)]
+#[ORM\HasLifecycleCallbacks()]
 class SavedBook
 {
+    use TimestampsTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -31,9 +34,7 @@ class SavedBook
     #[ORM\Column(nullable: true, enumType: BookList::class)]
     private ?BookList $bookList = null;
 
-    /**
-     * @var Collection<int, BookEvent>
-     */
+    /** @var Collection<int, BookEvent> */
     #[ORM\OneToMany(targetEntity: BookEvent::class, mappedBy: 'savedBook')]
     private Collection $events;
 

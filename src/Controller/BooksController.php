@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\BookEvent;
 use App\Entity\BookEventType;
 use App\Entity\BookList;
+use App\Entity\BookStatusType;
 use App\Entity\GoogleVolume;
 use App\Entity\SavedBook;
 use App\Security\Voter\BooksVoter;
@@ -17,6 +18,43 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/books', name: 'books_')]
 class BooksController extends AbstractController
 {
+    #[Route('/home', name: 'homepage', methods: ['GET'])]
+    #[IsGranted(BooksVoter::LIST)]
+    public function list(
+        #[MapQueryParameter] ?BookList $bookList = null,
+    ): Response {
+        $currentlyReading = $this->em->getRepository(SavedBook::class)->findBy([
+            'userId' => $this->getUser()->getUserIdentifier(),
+            'bookStatus' => BookStatusType::READING,
+        ], [
+            'updatedAt' => 'DESC',
+        ]);
+
+        $wishlist = $this->em->getRepository(SavedBook::class)->findBy([
+            'userId' => $this->getUser()->getUserIdentifier(),
+            'bookList' => BookList::WISHLIST,
+        ], [
+            'updatedAt' => 'DESC',
+        ], 5);
+
+        $library = $this->em->getRepository(SavedBook::class)->findBy([
+            'userId' => $this->getUser()->getUserIdentifier(),
+            'bookList' => BookList::LIBRARY,
+        ], [
+            'updatedAt' => 'DESC',
+        ], 5);
+
+        return new Response(
+            $this->serializer->serialize([
+                'currentlyReading' => $currentlyReading,
+                'wishlist' => $wishlist,
+                'library' => $library,
+            ]),
+            Response::HTTP_OK,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
     #[Route('/', name: 'add', methods: ['POST'])]
     #[IsGranted(BooksVoter::CREATE)]
     public function add(
