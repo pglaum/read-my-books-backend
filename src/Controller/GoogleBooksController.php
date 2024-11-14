@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\SavedBook;
 use App\Security\Voter\StandardVoter;
 use App\Service\GoogleBooks\ApiClient;
 use App\Service\GoogleBooks\Type\SearchQuery;
@@ -29,11 +30,14 @@ class GoogleBooksController extends AbstractController
             );
         }
 
-        $savedBooks = [];
+        $savedBooks = $this->em->getRepository(SavedBook::class)->findByVolumes(
+            $this->getUser()->getUserIdentifier(),
+            $books,
+        );
 
         return new Response(
             $this->serializer->serialize([
-                'volume' => $books,
+                'volumes' => $books,
                 'savedBooks' => $savedBooks,
                 'total' => $total,
             ]),
@@ -55,7 +59,10 @@ class GoogleBooksController extends AbstractController
             );
         }
 
-        $savedBook = null;
+        $savedBook = $this->em->getRepository(SavedBook::class)->findOneByVolume(
+            $this->getUser()->getUserIdentifier(),
+            $result,
+        );
 
         return new Response(
             $this->serializer->serialize([

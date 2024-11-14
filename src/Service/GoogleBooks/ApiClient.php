@@ -24,6 +24,7 @@ class ApiClient
         SearchQuery $query,
     ): array {
         $key = 'google-books-search-'.$query->serialize();
+
         [$datetime, $response] = $this->cache->get($key, function (ItemInterface $item) use ($query): array {
             $item->expiresAfter(3600 * 24 * 31); // 1 month, then we remove it
 
@@ -131,7 +132,7 @@ class ApiClient
         return $this->client->withOptions([
             'base_uri' => 'https://www.googleapis.com',
             'query' => [
-                'apiKey' => $apiKey,
+                'key' => $apiKey,
             ],
         ]);
     }

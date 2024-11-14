@@ -20,9 +20,8 @@ class BooksController extends AbstractController
 {
     #[Route('/home', name: 'homepage', methods: ['GET'])]
     #[IsGranted(BooksVoter::LIST)]
-    public function homepage(
-        #[MapQueryParameter] ?BookList $bookList = null,
-    ): Response {
+    public function homepage(): Response
+    {
         $currentlyReading = $this->em->getRepository(SavedBook::class)->findBy([
             'userId' => $this->getUser()->getUserIdentifier(),
             'bookStatus' => BookStatusType::READING,
