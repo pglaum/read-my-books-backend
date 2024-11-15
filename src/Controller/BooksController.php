@@ -10,6 +10,7 @@ use App\Entity\GoogleVolume;
 use App\Entity\SavedBook;
 use App\Security\Voter\BooksVoter;
 use App\Service\GoogleBooks\ApiClient;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
@@ -219,5 +220,84 @@ class BooksController extends AbstractController
         //        $this->em->flush();
         //
         //        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/{id}', name: 'patch', methods: ['PATCH'])]
+    #[IsGranted(BooksVoter::EDIT, subject: 'savedBook')]
+    public function patch(
+        SavedBook $savedBook,
+        Request $request,
+        #[MapQueryParameter] bool $setDate = true,
+        #[MapQueryParameter] bool $isRead = false,
+    ): Response {
+        $submittedData = json_decode($request->getContent(), true) ?? [];
+
+        try {
+            $savedBook->updateFromArray($submittedData);
+            $this->em->persist($savedBook);
+
+            if (isset($submittedData['bookList']) && BookList::LIBRARY == BookList::tryFrom($submittedData['bookList'])) {
+                $event = (new BookEvent())
+                    ->setEvent(BookEventType::BOUGHT)
+                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setSavedBook($savedBook)
+                ;
+                $this->em->persist($event);
+            }
+
+            if ($isRead && !$savedBook->isRead()) {
+                $event = (new BookEvent())
+                    ->setEvent(BookEventType::READ)
+                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setSavedBook($savedBook)
+                ;
+                $this->em->persist($event);
+            }
+
+            $this->em->flush();
+        } catch (\Exception $e) {
+            return new Response(
+                $this->serializer->serialize(['error' => $e->getMessage()]),
+                Response::HTTP_BAD_REQUEST,
+                ['Content-Type' => 'application/json'],
+            );
+        }
+
+        return new Response(
+            $this->serializer->serialize($savedBook),
+            Response::HTTP_OK,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    #[Route('/events/{id}', name: 'event_patch', methods: ['PATCH'])]
+    #[IsGranted(BooksVoter::EDIT, subject: 'bookEvent')]
+    public function event_patch(
+        BookEvent $bookEvent,
+        #[MapQueryParameter] ?\DateTime $date,
+    ): Response {
+        $bookEvent->setDate($date);
+        $this->em->persist($bookEvent);
+        $this->em->flush();
+
+        return new Response(
+            $this->serializer->serialize($bookEvent),
+            Response::HTTP_OK,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    #[Route('/events/{id}', name: 'event_delete', methods: ['DELETE'])]
+    #[IsGranted(BooksVoter::EDIT, subject: 'bookEvent')]
+    public function event_delete(
+        BookEvent $bookEvent,
+    ): Response {
+        $this->em->remove($bookEvent);
+        $this->em->flush();
+
+        return new Response(
+            null,
+            Response::HTTP_NO_CONTENT,
+        );
     }
 }

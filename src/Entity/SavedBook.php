@@ -49,6 +49,27 @@ class SavedBook
         $this->events = new ArrayCollection();
     }
 
+    public function updateFromArray(array $data): static
+    {
+        if (isset($data['ownedCount'])) {
+            $this->ownedCount = $data['ownedCount'];
+        }
+        if (isset($data['pageProgress'])) {
+            $this->pageProgress = $data['pageProgress'];
+        }
+        if (isset($data['bookList'])) {
+            $this->bookList = BookList::from($data['bookList']);
+        }
+        if (isset($data['bookStatus'])) {
+            $this->bookStatus = BookStatusType::from($data['bookStatus']);
+        }
+        if (isset($data['favorite'])) {
+            $this->favorite = $data['favorite'];
+        }
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;

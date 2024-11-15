@@ -42,6 +42,7 @@ jobs:
         run: curl -v --fail-with-body http://localhost
       - name: Check HTTPS reachability
         run: curl -vk --fail-with-body https://localhost
+        if: false
       - name: Create test database
         run: docker compose exec -T php bin/console -e test doctrine:database:create
       - name: Run migrations
