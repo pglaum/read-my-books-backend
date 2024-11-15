@@ -91,7 +91,7 @@ class BooksController extends AbstractController
         ]);
         if (null == $googleVolume) {
             $googleBookJson = $apiClient->get($volumeId);
-            $googleVolume = new GoogleVolume($userId, $googleBookJson);
+            $googleVolume = new GoogleVolume($userId, $googleBookJson->getData());
             $this->em->persist($googleVolume);
             $this->em->flush();
         }
