@@ -190,9 +190,7 @@ class BooksController extends AbstractController
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     #[IsGranted(BooksVoter::DELETE, subject: 'savedBook')]
     public function delete(
-        ApiClient $apiClient,
         SavedBook $savedBook,
-        #[MapQueryParameter] ?string $volumeId = null,
     ): Response {
         $this->em->remove($savedBook);
         $this->em->flush();
@@ -227,8 +225,8 @@ class BooksController extends AbstractController
     public function patch(
         SavedBook $savedBook,
         Request $request,
-        #[MapQueryParameter] bool $setDate = true,
         #[MapQueryParameter] bool $isRead = false,
+        #[MapQueryParameter] bool $setDate = true,
     ): Response {
         $submittedData = json_decode($request->getContent(), true) ?? [];
 
@@ -252,6 +250,9 @@ class BooksController extends AbstractController
                     ->setSavedBook($savedBook)
                 ;
                 $this->em->persist($event);
+
+                $savedBook->setBookStatus(null);
+                $this->em->persist($savedBook);
             }
 
             $this->em->flush();
