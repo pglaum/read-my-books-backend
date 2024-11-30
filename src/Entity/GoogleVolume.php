@@ -3,6 +3,9 @@
 namespace App\Entity;
 
 use App\Repository\GoogleVolumeRepository;
+use DateMalformedStringException;
+use DateTime;
+use DateTimeInterface;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -39,7 +42,7 @@ class GoogleVolume
     private ?string $image = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $publishedDate = null;
+    private ?DateTimeInterface $publishedDate = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $publisher = null;
@@ -84,11 +87,52 @@ class GoogleVolume
             }
 
             try {
-                $this->publishedDate = isset($volumeInfo['publishedDate']) ? new \DateTime($volumeInfo['publishedDate']) : null;
-            } catch (\DateMalformedStringException $e) {
+                $this->publishedDate = isset($volumeInfo['publishedDate']) ? new DateTime($volumeInfo['publishedDate']) : null;
+            } catch (DateMalformedStringException $e) {
                 $this->publishedDate = null;
             }
         }
+    }
+
+    public function updateFromArray(array $data = []): static
+    {
+        if (isset($data['title'])) {
+            $this->title = $data['title'];
+        }
+        if (isset($data['authors'])) {
+            $this->authors = $data['authors'];
+        }
+        if (isset($data['categories'])) {
+            $this->categories = $data['categories'];
+        }
+        if (isset($data['description'])) {
+            $this->description = $data['description'];
+        }
+        if (isset($data['publisher'])) {
+            $this->publisher = $data['publisher'];
+        }
+        if (isset($data['subtitle'])) {
+            $this->subtitle = $data['subtitle'];
+        }
+        if (isset($data['pageCount'])) {
+            $this->pageCount = $data['pageCount'];
+        }
+        if (isset($data['image'])) {
+            $this->image = $data['image'];
+        }
+        if (isset($data['thumbnail'])) {
+            $this->thumbnail = $data['thumbnail'];
+        }
+
+        if (isset($data['publishedDate'])) {
+            try {
+                $this->publishedDate = isset($volumeInfo['publishedDate']) ? new DateTime($volumeInfo['publishedDate']) : null;
+            } catch (DateMalformedStringException $e) {
+                $this->publishedDate = null;
+            }
+        }
+
+        return $this;
     }
 
     public function getId(): ?int
@@ -192,12 +236,12 @@ class GoogleVolume
         return $this;
     }
 
-    public function getPublishedDate(): ?\DateTimeInterface
+    public function getPublishedDate(): ?DateTimeInterface
     {
         return $this->publishedDate;
     }
 
-    public function setPublishedDate(?\DateTimeInterface $publishedDate): static
+    public function setPublishedDate(?DateTimeInterface $publishedDate): static
     {
         $this->publishedDate = $publishedDate;
 

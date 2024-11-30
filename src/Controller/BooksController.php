@@ -10,6 +10,8 @@ use App\Entity\GoogleVolume;
 use App\Entity\SavedBook;
 use App\Security\Voter\BooksVoter;
 use App\Service\GoogleBooks\ApiClient;
+use DateTime;
+use Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
@@ -114,7 +116,7 @@ class BooksController extends AbstractController
             if (BookList::LIBRARY == $bookList) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::BOUGHT)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                     ->setSavedBook($book)
                 ;
                 $this->em->persist($event);
@@ -123,7 +125,7 @@ class BooksController extends AbstractController
             if ($isRead) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::READ)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                     ->setSavedBook($book)
                 ;
                 $this->em->persist($event);
@@ -146,7 +148,7 @@ class BooksController extends AbstractController
             if (BookList::LIBRARY == $bookList && !$book->isOwned()) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::BOUGHT)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                 ;
                 $this->em->persist($event);
 
@@ -156,7 +158,7 @@ class BooksController extends AbstractController
             if ($isRead && !$book->isRead()) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::READ)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                     ->setSavedBook($book)
                 ;
                 $this->em->persist($event);
@@ -234,10 +236,15 @@ class BooksController extends AbstractController
             $savedBook->updateFromArray($submittedData);
             $this->em->persist($savedBook);
 
+            if (isset($submittedData['volume'])) {
+                $savedBook->getVolume()->updateFromArray($submittedData['volume']);
+                $this->em->persist($savedBook);
+            }
+
             if (isset($submittedData['bookList']) && BookList::LIBRARY == BookList::tryFrom($submittedData['bookList'])) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::BOUGHT)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                     ->setSavedBook($savedBook)
                 ;
                 $this->em->persist($event);
@@ -246,7 +253,7 @@ class BooksController extends AbstractController
             if ($isRead && !$savedBook->isRead()) {
                 $event = (new BookEvent())
                     ->setEvent(BookEventType::READ)
-                    ->setDate($setDate ? new \DateTime() : null)
+                    ->setDate($setDate ? new DateTime() : null)
                     ->setSavedBook($savedBook)
                 ;
                 $this->em->persist($event);
@@ -256,7 +263,7 @@ class BooksController extends AbstractController
             }
 
             $this->em->flush();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return new Response(
                 $this->serializer->serialize(['error' => $e->getMessage()]),
                 Response::HTTP_BAD_REQUEST,
@@ -274,8 +281,8 @@ class BooksController extends AbstractController
     #[Route('/events/{id}', name: 'event_patch', methods: ['PATCH'])]
     #[IsGranted(BooksVoter::EDIT, subject: 'bookEvent')]
     public function event_patch(
-        BookEvent $bookEvent,
-        #[MapQueryParameter] ?\DateTime $date,
+        BookEvent                      $bookEvent,
+        #[MapQueryParameter] ?DateTime $date,
     ): Response {
         $bookEvent->setDate($date);
         $this->em->persist($bookEvent);
